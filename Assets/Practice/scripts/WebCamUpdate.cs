@@ -138,6 +138,8 @@ public class WebCamUpdate : MonoBehaviour, IPointerClickHandler
                 Cursor.SetCursor(_cursorTexture, Vector2.zero, CursorMode.Auto);
             }
         }
+
     }
+
 
 }
