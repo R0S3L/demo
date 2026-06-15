@@ -1,3 +1,4 @@
+using System;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -8,12 +9,12 @@ public class PointManager : MonoBehaviour
     [SerializeField] private GameObject _popupWindow;
     [SerializeField] private GameObject _helpWindow;
 
-    // RectTransform области, относительно центра которой считаются четверти
     [SerializeField] private RectTransform _areaRect;
 
     private List<GameObject> dots = new List<GameObject>();
     private List<Vector2> positions = new List<Vector2>();
-
+    public int firstQuadrant, secondQuadrant;
+    
     void Start()
     {
         HidePopup();
@@ -21,57 +22,66 @@ public class PointManager : MonoBehaviour
     }
 
     public void Spawn(Vector2Int pos)
+{
+    if (dots.Count > 1)
     {
-        if (dots.Count > 1)
-        {
-            Debug.Log("Already two dots");
-            return;
-        }
-
-        if (dots.Count == 1)
-        {
-            int firstQuadrant = GetQuadrant(positions[0]);
-            int secondQuadrant = GetQuadrant(pos);
-
-            if (!IsOppositeQuadrant(firstQuadrant, secondQuadrant))
-            {
-                Debug.Log("Вторая точка должна быть в противоположной четверти");
-                return; // точку не ставим
-            }
-        }
-
-        GameObject point = Instantiate(_pointPref, _parentPoints);
-        RectTransform rect = point.GetComponent<RectTransform>();
-        rect.anchoredPosition = pos;
-        dots.Add(point);
-        positions.Add(pos);
-
-        if (dots.Count == 1)
-        {
-            ShowHelp();
-        }
-        if (dots.Count == 2)
-        {
-            HideHelp();
-            ShowPopup();
-        }
+        Debug.Log("Already two dots");
+        return;
     }
 
-    // 1 - верх-право, 2 - верх-лево, 3 - низ-лево, 4 - низ-право
-    private int GetQuadrant(Vector2 pos)
+    GameObject point = Instantiate(_pointPref, _parentPoints);
+    RectTransform rect = point.GetComponent<RectTransform>();
+    rect.anchoredPosition = pos;
+    
+    // РЈСЃС‚Р°РЅР°РІР»РёРІР°РµРј С‡РµС‚РІРµСЂС‚СЊ РґР»СЏ С‚РѕС‡РєРё
+    DragPoint dragPoint = point.GetComponent<DragPoint>();
+    if (dragPoint != null)
     {
-        Vector2 center = _areaRect.rect.center;
+        int quadrant = GetQuadrant(pos);
+        if (dots.Count == 0) firstQuadrant = quadrant;
+        else secondQuadrant = quadrant;
+    }
+    
+    dots.Add(point);
+    positions.Add(pos);
+    
+    if (dots.Count == 1)
+    {
+        ShowHelp();
+    }
+    if (dots.Count == 2)
+    {
+        HideHelp();
+        if (!IsOppositeQuadrant(firstQuadrant, secondQuadrant))
+        {
+            Debug.Log("Р’С‚РѕСЂР°СЏ С‚РѕС‡РєР° РґРѕР»Р¶РЅР° Р±С‹С‚СЊ РІ РїСЂРѕС‚РёРІРѕРїРѕР»РѕР¶РЅРѕР№ С‡РµС‚РІРµСЂС‚Рё");
+            Clear();
+            return; 
+        }
+        else
+        {
+            Debug.Log($"РЈРґРѕРІР»РµС‚РІРѕСЂСЏРµС‚ {positions.Count}");
+        }
+        ShowPopup();
+    }
+}
 
-        bool right = pos.x >= center.x;
-        bool top = pos.y >= center.y;
+    
+    public int GetQuadrant(Vector2 pos)
+    {
+        float rect_width = _areaRect.rect.width;
+        float rect_height = _areaRect.rect.height;
 
-        if (right && top) return 1;
-        if (!right && top) return 2;
-        if (!right && !top) return 3;
+        bool width = pos.x >= rect_width/2;
+        bool height = pos.y >= rect_height/2;
+
+        if (width && height) return 1;
+        if (!width && height) return 2;
+        if (!width && !height) return 3;
         return 4;
     }
 
-    private bool IsOppositeQuadrant(int q1, int q2)
+    public bool IsOppositeQuadrant(int q1, int q2)
     {
         return (q1 == 1 && q2 == 3) || (q1 == 3 && q2 == 1)
             || (q1 == 2 && q2 == 4) || (q1 == 4 && q2 == 2);
@@ -87,6 +97,17 @@ public class PointManager : MonoBehaviour
         positions.Clear();
         HidePopup();
         HideHelp();
+    }
+
+    public void UpdatePointPosition(GameObject point, Vector2 newPos)
+    {
+        
+        int index = dots.IndexOf(point);
+        if (index >= 0)
+        {
+            positions[index] = newPos;
+            Debug.Log($"РўРѕС‡РєР° {index} РїРµСЂРµРјРµС‰РµРЅР° РІ РїРѕР·РёС†РёСЋ {newPos}");
+        }
     }
 
     public void ShowPopup() => _popupWindow.SetActive(true);
