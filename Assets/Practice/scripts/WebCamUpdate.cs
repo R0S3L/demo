@@ -1,13 +1,10 @@
 using System;
 using System.Collections.Generic;
 using TMPro;
-using UnityEngine.InputSystem;
-using Unity.VisualScripting;
 using UnityEngine;
 using UnityEngine.EventSystems;
-using UnityEngine.iOS;
+using UnityEngine.InputSystem;
 using UnityEngine.UI;
-using UnityEngine.Windows.WebCam;
 
 public class WebCamUpdate : MonoBehaviour, IPointerClickHandler
 {
@@ -28,26 +25,61 @@ public class WebCamUpdate : MonoBehaviour, IPointerClickHandler
     // Start is called once before the first execution of Update after the MonoBehaviour is created
     void Start()
     {
-        DropShow(_drop);
-        Vector2 vect = Mouse.current.position.ReadValue();
-        _drop.onValueChanged.AddListener(DropChanged);
-        _texture = new WebCamTexture();
-        WebCamDevice[] deivce = WebCamTexture.devices; 
-        if (_index < 0 || _index >= deivce.Length || deivce == null){            
-            return;
+        if (_drop != null)
+        {
+            DropShow(_drop);
+            _drop.onValueChanged.AddListener(DropChanged);
         }
-        _texture.deviceName = deivce[_index].name;
-        _texture.Play();
-        _img.texture = _texture;
+
+        WebCamDevice[] devices = WebCamTexture.devices;
+        if (devices == null || devices.Length == 0)
+            return;
+
+        int savedIndex = _index;
+        if (SettingsManager.Instance != null && SettingsManager.Instance.GetSelectedCameraIndex() >= 0)
+        {
+            savedIndex = SettingsManager.Instance.GetSelectedCameraIndex();
+        }
+
+        if (savedIndex < 0 || savedIndex >= devices.Length)
+            savedIndex = 0;
+
+        _index = savedIndex;
+        if (_drop != null && _drop.options.Count > 0)
+            _drop.value = _index;
+
+        ApplyCamera(_index);
         GetResolution();
-        GetFPS();
-        GetName();
+    }
+
+    public void SaveCam()
+    {
+        if (_texture != null && SettingsManager.Instance != null)
+        {
+            SettingsManager.Instance.SetCameraSelection(_index, _texture.deviceName);
+            SettingsManager.Instance.Save();
+        }
+    }
+
+    public void LoadCam()
+    {
+        if (SettingsManager.Instance == null)
+            return;
+
+        int savedIndex = SettingsManager.Instance.GetSelectedCameraIndex();
+        if (savedIndex >= 0)
+        {
+            _index = savedIndex;
+            ApplyCamera(savedIndex);
+        }
     }
 
     void OnDestroy()
     {
-       _texture.Stop();
-       _drop.onValueChanged.RemoveListener(DropChanged);
+        if (_texture != null)
+            _texture.Stop();
+        if (_drop != null)
+            _drop.onValueChanged.RemoveListener(DropChanged);
     }
     void DropShow(TMP_Dropdown _drop)
     {
@@ -64,39 +96,68 @@ public class WebCamUpdate : MonoBehaviour, IPointerClickHandler
     }
     public void DropChanged(int id)
     {
-       WebCamDevice[] deivce = WebCamTexture.devices; 
-        if (id < 0 || id > deivce.Length || deivce == null){            
+        WebCamDevice[] devices = WebCamTexture.devices;
+        if (devices == null || id < 0 || id >= devices.Length){
             return;
         }
-        _texture.Stop();
+        _index = id;
+        ApplyCamera(id);
+        SaveCam();
+    }
+
+    private void ApplyCamera(int id)
+    {
+        WebCamDevice[] devices = WebCamTexture.devices;
+        if (devices == null || devices.Length == 0)
+            return;
+
+        if (id < 0 || id >= devices.Length)
+            return;
+
+        if (_texture != null)
+            _texture.Stop();
+
         _texture = new WebCamTexture();
-        _texture.deviceName = deivce[id].name;
-        _img.texture = _texture;
-        _texture.Play();  
+        _texture.deviceName = devices[id].name;
+        _texture.Play();
+
+        if (_img != null)
+            _img.texture = _texture;
+
+        _index = id;
+
+        if (SettingsManager.Instance != null)
+            SettingsManager.Instance.SetCameraSelection(id, devices[id].name);
     }
     public void GetResolution()
     {
-        if (_img.texture != null)
+        if (_img.texture == null)
         {
-            int width = _img.texture.width;
-            int height = _img.texture.height;
-            _resolution.text = ($"{width} x {height}");
+            return;
         }
+        int width = _img.texture.width;
+        int height = _img.texture.height;
+        if(_resolution.text != null) {
+        _resolution.text = ($"{width} x {height}");
+        }
+        
     }
     public void GetFPS()
     {
-        if(_img.texture != null)
+        if(_img.texture == null)
         {
-            float fps = 1f / Time.deltaTime;
-            _fps.text = Convert.ToString(Mathf.Round(fps));
+            return;
         }
+        float fps = 1f / Time.deltaTime;
+        _fps.text = Convert.ToString(Mathf.Round(fps));
     }
     public void GetName()
     {
-       if (_texture != null)
+       if (_texture == null)
         {
-            _cameraName.text = _texture.deviceName;
+            return;
         }
+        _cameraName.text = _texture.deviceName;
     }
     public void Btn_Start()
     {
@@ -112,17 +173,14 @@ public class WebCamUpdate : MonoBehaviour, IPointerClickHandler
     {
        _texture.Pause(); 
     }
+    
     void Update()
     {
         GetResolution();
         GetFPS();
         GetName();
-       // Debug.Log(Mouse.current.position.ReadValue());
+       //Debug.Log(Mouse.current.position.ReadValue());
     }
-    void Awake(){
-
-    }
-
     public void OnPointerClick(PointerEventData eventData)
     {
         Debug.Log("Clicked");
@@ -138,8 +196,5 @@ public class WebCamUpdate : MonoBehaviour, IPointerClickHandler
                 Cursor.SetCursor(_cursorTexture, Vector2.zero, CursorMode.Auto);
             }
         }
-
     }
-
-
 }

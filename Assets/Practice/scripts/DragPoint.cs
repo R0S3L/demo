@@ -1,5 +1,6 @@
 using UnityEngine;
 using UnityEngine.EventSystems;
+using UnityEngine.InputSystem;
 
 [RequireComponent(typeof(RectTransform))]
 public class DragPoint : MonoBehaviour, IDragHandler, IEndDragHandler
@@ -9,6 +10,7 @@ public class DragPoint : MonoBehaviour, IDragHandler, IEndDragHandler
     [SerializeField]private PointManager _pointManager;
     [SerializeField]private int _myQuadrant;
     [SerializeField]private bool _isInitialized = false;
+    [SerializeField]private Vector2 _mousePos;
 
     [System.Obsolete]
     private void Awake()
@@ -35,10 +37,18 @@ public class DragPoint : MonoBehaviour, IDragHandler, IEndDragHandler
             return;
         
         Vector2 newPos = _rect.anchoredPosition + eventData.delta / _canvas.scaleFactor;
-        
+        _mousePos = Mouse.current.position.ReadValue(); 
         if (_pointManager.GetQuadrant(newPos) == _myQuadrant)
         {
             _rect.anchoredPosition = newPos;
+        }
+        if (_pointManager.GetQuadrant(newPos) != _pointManager.GetQuadrant(_mousePos))
+        {
+            Debug.Log("Точка на границе четверти");           
+            ExecuteEvents.ExecuteHierarchy(gameObject, eventData, ExecuteEvents.endDragHandler);            
+            eventData.pointerDrag = null;
+            eventData.dragging = false;            
+            return;
         }
     }
     

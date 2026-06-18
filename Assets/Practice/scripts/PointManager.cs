@@ -19,61 +19,84 @@ public class PointManager : MonoBehaviour
     {
         HidePopup();
         HideHelp();
+        LoadSavedDots();
     }
 
     public void Spawn(Vector2Int pos)
-{
-    if (dots.Count > 1)
     {
-        Debug.Log("Already two dots");
-        return;
-    }
+        if (dots.Count > 1)
+        {
+            Debug.Log("Already two dots");
+            return;
+        }
 
-    GameObject point = Instantiate(_pointPref, _parentPoints);
-    RectTransform rect = point.GetComponent<RectTransform>();
-    rect.anchoredPosition = pos;
-    
-    // Устанавливаем четверть для точки
-    DragPoint dragPoint = point.GetComponent<DragPoint>();
-    if (dragPoint != null)
-    {
-        int quadrant = GetQuadrant(pos);
-        if (dots.Count == 0) firstQuadrant = quadrant;
-        else secondQuadrant = quadrant;
-    }
-    
-    dots.Add(point);
-    positions.Add(pos);
-    
-    if (dots.Count == 1)
-    {
-        ShowHelp();
-    }
-    if (dots.Count == 2)
-    {
-        HideHelp();
-        if (!IsOppositeQuadrant(firstQuadrant, secondQuadrant))
+        GameObject point = Instantiate(_pointPref, _parentPoints);
+        RectTransform rect = point.GetComponent<RectTransform>();
+        rect.anchoredPosition = pos;
+        
+        // Устанавливаем четверть для точки
+        DragPoint dragPoint = point.GetComponent<DragPoint>();
+        if (dragPoint != null)
         {
-            Debug.Log("Вторая точка должна быть в противоположной четверти");
-            Clear();
-            return; 
+            int quadrant = GetQuadrant(pos);
+            if (dots.Count == 0) firstQuadrant = quadrant;
+            else secondQuadrant = quadrant;
         }
-        else
+        
+        dots.Add(point);
+        positions.Add(pos);
+        
+        if (dots.Count == 1)
         {
-            Debug.Log($"Удовлетворяет {positions.Count}");
+            ShowHelp();
         }
-        ShowPopup();
+        if (dots.Count == 2)
+        {
+            HideHelp();
+            if (!IsOppositeQuadrant(firstQuadrant, secondQuadrant))
+            {
+                Debug.Log("Вторая точка должна быть в противоположной четверти");
+                Clear();
+                return; 
+            }
+            else
+            {
+                Debug.Log($"Удовлетворяет {positions.Count}");
+            }
+            ShowPopup();
+        }
     }
-}
 
     
     public int GetQuadrant(Vector2 pos)
     {
         float rect_width = _areaRect.rect.width;
         float rect_height = _areaRect.rect.height;
+        bool width = true;
+        bool height = true;
 
-        bool width = pos.x >= rect_width/2;
-        bool height = pos.y >= rect_height/2;
+        if( pos.x >= rect_width/2 && 1920 >= pos.x)
+        {
+            width = true;           
+        }
+        else
+        {
+            if(pos.x >= 0)
+            {
+                width = false;
+            }
+        }
+        if( pos.y >= rect_height/2 && 1080 >= pos.y)
+        {
+            height = true;
+        }
+        else
+        {
+            if(pos.y >= 0)
+            {
+                height = false;
+            }
+        }
 
         if (width && height) return 1;
         if (!width && height) return 2;
@@ -100,8 +123,7 @@ public class PointManager : MonoBehaviour
     }
 
     public void UpdatePointPosition(GameObject point, Vector2 newPos)
-    {
-        
+    {        
         int index = dots.IndexOf(point);
         if (index >= 0)
         {
@@ -114,4 +136,25 @@ public class PointManager : MonoBehaviour
     public void HidePopup() => _popupWindow.SetActive(false);
     public void ShowHelp() => _helpWindow.SetActive(true);
     public void HideHelp() => _helpWindow.SetActive(false);
+    public void SaveDots()
+    {
+        HidePopup();
+        if (SettingsManager.Instance != null && _areaRect != null)
+        {
+            SettingsManager.Instance.UpdatePositions(positions, _areaRect.rect.size);
+            SettingsManager.Instance.Save();
+        }
+    }
+    private void LoadSavedDots()
+    {
+        if (SettingsManager.Instance != null && SettingsManager.Instance.Data.savedPositions != null)
+        {
+            List<Vector2> savedPositions = SettingsManager.Instance.Data.savedPositions;
+            foreach (Vector2 pos in savedPositions)
+            {
+                Vector2Int posInt = new Vector2Int(Mathf.RoundToInt(pos.x), Mathf.RoundToInt(pos.y));
+                Spawn(posInt);
+            }
+        }
+    }
 }

@@ -12,7 +12,7 @@ public class MousePosControl : MonoBehaviour
     {
        // _clickRef.action.performed += MouseClick;
     }
-    void Oestroy()
+    void Destroy()
     {
      // _clickRef.action.performed -= MouseClick;  
     }
