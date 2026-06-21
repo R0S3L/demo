@@ -57,6 +57,7 @@ public class WebCamUpdate : MonoBehaviour, IPointerClickHandler
         if (_texture != null && SettingsManager.Instance != null)
         {
             SettingsManager.Instance.SetCameraSelection(_index, _texture.deviceName);
+            SettingsManager.Instance.SetCameraResolution(_texture.width, _texture.height);
             SettingsManager.Instance.Save();
         }
     }
@@ -117,30 +118,55 @@ public class WebCamUpdate : MonoBehaviour, IPointerClickHandler
         if (_texture != null)
             _texture.Stop();
 
-        _texture = new WebCamTexture();
-        _texture.deviceName = devices[id].name;
-        _texture.Play();
+        int savedWidth = 0;
+        int savedHeight = 0;
+        if (SettingsManager.Instance != null)
+        {
+            Vector2Int savedResolution = SettingsManager.Instance.GetCameraResolution();
+            savedWidth = savedResolution.x;
+            savedHeight = savedResolution.y;
+        }
+
+        if (savedWidth > 0 && savedHeight > 0)
+        {
+            _texture = new WebCamTexture(devices[id].name, savedWidth, savedHeight, 30);
+        }
+        else
+        {
+            _texture = new WebCamTexture();
+            _texture.deviceName = devices[id].name;
+        }
 
         if (_img != null)
             _img.texture = _texture;
 
         _index = id;
+        _texture.Play();
 
         if (SettingsManager.Instance != null)
+        {
             SettingsManager.Instance.SetCameraSelection(id, devices[id].name);
+            SettingsManager.Instance.SetCameraResolution(_texture.width, _texture.height);
+        }
     }
     public void GetResolution()
     {
-        if (_img.texture == null)
+        if (_texture == null || _texture.width <= 16 || _texture.height <= 16)
         {
             return;
         }
-        int width = _img.texture.width;
-        int height = _img.texture.height;
-        if(_resolution.text != null) {
-        _resolution.text = ($"{width} x {height}");
+
+        int width = _texture.width;
+        int height = _texture.height;
+        if (_resolution != null)
+        {
+            _resolution.text = $"{width} x {height}";
         }
-        
+
+        if (SettingsManager.Instance != null)
+        {
+            SettingsManager.Instance.SetCameraResolution(width, height);
+        }
     }
     public void GetFPS()
     {

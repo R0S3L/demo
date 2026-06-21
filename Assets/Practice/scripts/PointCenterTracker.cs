@@ -37,7 +37,7 @@ public class PointCenterTracker : MonoBehaviour
     [SerializeField]private PointManager pm;
     
     public List<float2> DetectedCenters { get; private set; } = new List<float2>();
-    List<Vector2> savedPositions = new List<Vector2>();
+    private List<Vector2> savedPositions = new List<Vector2>();
     
     void Start()
     {
@@ -65,11 +65,11 @@ public class PointCenterTracker : MonoBehaviour
         {
             webCamTexture = new WebCamTexture(1920, 1080, 60);
         }
+        if (cameraDisplay != null)
+            cameraDisplay.texture = webCamTexture;
 
         webCamTexture.Play();
 
-        if (cameraDisplay != null)
-            cameraDisplay.texture = webCamTexture;
     }
 
     System.Collections.IEnumerator InitializeRoutine()
@@ -191,7 +191,11 @@ public class PointCenterTracker : MonoBehaviour
     void OnDestroy()
     {
         jobHandle.Complete();
-        
+        if (webCamTexture != null)
+        {
+            webCamTexture.Stop();
+            webCamTexture = null;
+        }
         if (inputPixelsNative.IsCreated) inputPixelsNative.Dispose();
         if (grayscaleBuffer.IsCreated) grayscaleBuffer.Dispose();
         if (foundCentersQueue.IsCreated) foundCentersQueue.Dispose();
@@ -202,12 +206,6 @@ public class PointCenterTracker : MonoBehaviour
         if (SettingsManager.Instance != null && SettingsManager.Instance.Data.savedPositions != null)
         {
             savedPositions = SettingsManager.Instance.Data.savedPositions;
-            Debug.Log(savedPositions.Count);
-            foreach (Vector2 pos in savedPositions)
-            {
-                Vector2Int posInt = new Vector2Int(Mathf.RoundToInt(pos.x), Mathf.RoundToInt(pos.y));
-                pm.Spawn(posInt);
-            }
         }
     }
 }

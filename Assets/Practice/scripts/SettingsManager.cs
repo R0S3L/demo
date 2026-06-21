@@ -15,6 +15,8 @@ public class SettingsManager : MonoBehaviour
         public List<Vector2> savedPositions = new List<Vector2>();
         public int selectedCameraIndex = -1;
         public string selectedCameraName = "";
+        public int cameraWidth = 0;
+        public int cameraHeight = 0;
         
         // Цвет DOT (точка)
         public float dotR = 1f;
@@ -172,6 +174,17 @@ public class SettingsManager : MonoBehaviour
         Data.selectedCameraName = name;
     }
 
+    public void SetCameraResolution(int width, int height)
+    {
+        Data.cameraWidth = Mathf.Max(0, width);
+        Data.cameraHeight = Mathf.Max(0, height);
+    }
+
+    public Vector2Int GetCameraResolution()
+    {
+        return new Vector2Int(Data.cameraWidth, Data.cameraHeight);
+    }
+
     public int GetSelectedCameraIndex()
     {
         return Data.selectedCameraIndex;
@@ -181,5 +194,5 @@ public class SettingsManager : MonoBehaviour
     {
         return Data.selectedCameraName;
     }
-    
+ 
 }
