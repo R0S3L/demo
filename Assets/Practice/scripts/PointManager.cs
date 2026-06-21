@@ -14,7 +14,13 @@ public class PointManager : MonoBehaviour
     private List<GameObject> dots = new List<GameObject>();
     private List<Vector2> positions = new List<Vector2>();
     public int firstQuadrant, secondQuadrant;
-    
+
+    // Открываем доступ для конвертации screen -> local координат снаружи
+    // (например, из MousePosControl), чтобы не дублировать ссылку на rect
+    // ещё в одном инспекторе и не рассинхронизировать её вручную.
+    public RectTransform AreaRect => _areaRect;
+    public Transform ParentPoints => _parentPoints;
+
     void Start()
     {
         HidePopup();
@@ -33,7 +39,7 @@ public class PointManager : MonoBehaviour
         GameObject point = Instantiate(_pointPref, _parentPoints);
         RectTransform rect = point.GetComponent<RectTransform>();
         rect.anchoredPosition = pos;
-        
+
         // Устанавливаем четверть для точки
         DragPoint dragPoint = point.GetComponent<DragPoint>();
         if (dragPoint != null)
@@ -42,10 +48,10 @@ public class PointManager : MonoBehaviour
             if (dots.Count == 0) firstQuadrant = quadrant;
             else secondQuadrant = quadrant;
         }
-        
+
         dots.Add(point);
         positions.Add(pos);
-        
+
         if (dots.Count == 1)
         {
             ShowHelp();
@@ -57,7 +63,7 @@ public class PointManager : MonoBehaviour
             {
                 Debug.Log("Вторая точка должна быть в противоположной четверти");
                 Clear();
-                return; 
+                return;
             }
             else
             {
@@ -67,40 +73,27 @@ public class PointManager : MonoBehaviour
         }
     }
 
-    
+    // ИСПРАВЛЕНО: раньше верхняя граница сравнивалась с захардкоженными
+    // 1920 / 1080, из-за чего логика ломалась на любом разрешении/размере
+    // канваса, отличном от Full HD. Теперь квадрант считается только
+    // относительно реальных текущих размеров _areaRect.
+    //
+    // ВАЖНО: эта логика подразумевает, что pivot у _areaRect равен (0,0)
+    // (origin в левом нижнем углу), чтобы диапазон 0..width / 0..height
+    // совпадал с диапазоном anchoredPosition точек. Если pivot другой —
+    // приведите _areaRect к pivot (0,0) в инспекторе, это разовая настройка,
+    // а не повторяющаяся калибровка под каждое разрешение.
     public int GetQuadrant(Vector2 pos)
     {
-        float rect_width = _areaRect.rect.width;
-        float rect_height = _areaRect.rect.height;
-        bool width = true;
-        bool height = true;
+        float width = _areaRect.rect.width;
+        float height = _areaRect.rect.height;
 
-        if( pos.x >= rect_width/2 && 1920 >= pos.x)
-        {
-            width = true;           
-        }
-        else
-        {
-            if(pos.x >= 0)
-            {
-                width = false;
-            }
-        }
-        if( pos.y >= rect_height/2 && 1080 >= pos.y)
-        {
-            height = true;
-        }
-        else
-        {
-            if(pos.y >= 0)
-            {
-                height = false;
-            }
-        }
+        bool right = pos.x >= width / 2f;
+        bool top = pos.y >= height / 2f;
 
-        if (width && height) return 1;
-        if (!width && height) return 2;
-        if (!width && !height) return 3;
+        if (right && top) return 1;
+        if (!right && top) return 2;
+        if (!right && !top) return 3;
         return 4;
     }
 
@@ -123,7 +116,7 @@ public class PointManager : MonoBehaviour
     }
 
     public void UpdatePointPosition(GameObject point, Vector2 newPos)
-    {        
+    {
         int index = dots.IndexOf(point);
         if (index >= 0)
         {
@@ -136,6 +129,7 @@ public class PointManager : MonoBehaviour
     public void HidePopup() => _popupWindow.SetActive(false);
     public void ShowHelp() => _helpWindow.SetActive(true);
     public void HideHelp() => _helpWindow.SetActive(false);
+
     public void SaveDots()
     {
         HidePopup();
@@ -145,16 +139,36 @@ public class PointManager : MonoBehaviour
             SettingsManager.Instance.Save();
         }
     }
+
+    // ИСПРАВЛЕНО: раньше сохранённые нормализованные (0..1) координаты
+    // использовались напрямую как пиксельные координаты для Spawn(), то есть
+    // (0.3, 0.7) округлялись через Mathf.RoundToInt в (0, 1), и обе точки
+    // после загрузки оказывались в углу области. Это и была причина, по
+    // которой казалось, что нужно каждый раз вручную подгонять parent точек
+    // под текущее разрешение.
+    //
+    // Теперь координаты явно денормализуются обратно через реальный размер
+    // _areaRect на момент загрузки — так позиции корректно восстанавливаются
+    // на любом разрешении/размере экрана без ручной калибровки.
     private void LoadSavedDots()
     {
-        if (SettingsManager.Instance != null && SettingsManager.Instance.Data.savedPositions != null)
+        if (SettingsManager.Instance == null
+            || SettingsManager.Instance.Data.savedPositions == null
+            || _areaRect == null)
         {
-            List<Vector2> savedPositions = SettingsManager.Instance.Data.savedPositions;
-            foreach (Vector2 pos in savedPositions)
-            {
-                Vector2Int posInt = new Vector2Int(Mathf.RoundToInt(pos.x), Mathf.RoundToInt(pos.y));
-                Spawn(posInt);
-            }
+            return;
+        }
+
+        Vector2 areaSize = _areaRect.rect.size;
+        List<Vector2> savedPositions = SettingsManager.Instance.Data.savedPositions;
+
+        foreach (Vector2 normalizedPos in savedPositions)
+        {
+            Vector2 pixelPos = CoordinateUtils.ToPixels(normalizedPos, areaSize);
+            Vector2Int posInt = new Vector2Int(
+                Mathf.RoundToInt(pixelPos.x),
+                Mathf.RoundToInt(pixelPos.y));
+            Spawn(posInt);
         }
     }
 }
