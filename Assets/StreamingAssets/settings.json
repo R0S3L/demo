@@ -1,28 +1,29 @@
 {
     "savedPositions": [
         {
-            "x": 0.2822916507720947,
-            "y": 0.23425926268100739
+            "x": 0.14010415971279145,
+            "y": 0.1398148089647293
         },
         {
-            "x": 0.7916666269302368,
-            "y": 0.7759259343147278
+            "x": 0.7671874761581421,
+            "y": 0.8462963104248047
         }
     ],
-    "selectedCameraIndex": 1,
-    "selectedCameraName": "4K Streaming Webcam",
+    "selectedCameraIndex": 2,
+    "selectedCameraName": "Intel(R) RealSense(TM) Depth Camera 435i RGB",
     "cameraWidth": 1920,
     "cameraHeight": 1080,
     "dotR": 0.9954291582107544,
     "dotG": 0.015840470790863038,
     "dotB": 0.015840470790863038,
     "dotA": 1.0,
-    "borderR": 0.005035637877881527,
-    "borderG": 0.01920773647725582,
-    "borderB": 0.005035637877881527,
+    "borderR": 0.3184897303581238,
+    "borderG": 0.27885931730270388,
+    "borderB": 0.9870249032974243,
     "borderA": 1.0,
     "lineR": 0.25275030732154848,
     "lineG": 0.2093985676765442,
     "lineB": 1.0,
-    "lineA": 1.0
+    "lineA": 1.0,
+    "borderThickness": 5.0
 }

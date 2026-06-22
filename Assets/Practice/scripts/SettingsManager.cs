@@ -35,6 +35,9 @@ public class SettingsManager : MonoBehaviour
         public float lineG = 0f;
         public float lineB = 1f;
         public float lineA = 1f;
+
+        // Толщина рамки (пиксели UI)
+        public float borderThickness = 2f;
     }
     
     public SettingsData Data { get; private set; } = new SettingsData();
@@ -70,7 +73,6 @@ public class SettingsManager : MonoBehaviour
         }
     }
 
-    
     public void Save()
     {
         string json = JsonUtility.ToJson(Data, true);
@@ -98,33 +100,25 @@ public class SettingsManager : MonoBehaviour
         }
     }
     
-    // Сохраняем цвет в отдельные float поля
     public void SetColor(int index, Color color)
     {
         switch (index)
         {
-            case 0: // точка
-                Data.dotR = color.r;
-                Data.dotG = color.g;
-                Data.dotB = color.b;
-                Data.dotA = color.a;
+            case 0:
+                Data.dotR = color.r; Data.dotG = color.g;
+                Data.dotB = color.b; Data.dotA = color.a;
                 break;
-            case 1: // границаs
-                Data.borderR = color.r;
-                Data.borderG = color.g;
-                Data.borderB = color.b;
-                Data.borderA = color.a;
+            case 1:
+                Data.borderR = color.r; Data.borderG = color.g;
+                Data.borderB = color.b; Data.borderA = color.a;
                 break;
-            case 2: // линии
-                Data.lineR = color.r;
-                Data.lineG = color.g;
-                Data.lineB = color.b;
-                Data.lineA = color.a;
+            case 2:
+                Data.lineR = color.r; Data.lineG = color.g;
+                Data.lineB = color.b; Data.lineA = color.a;
                 break;
         }
     }
     
-    // Получаем цвет из float полей
     public Color GetColor(int index)
     {
         return index switch
@@ -136,29 +130,18 @@ public class SettingsManager : MonoBehaviour
         };
     }
     
-    // Обновляем все цвета сразу
     public void SetAllColors(Color dot, Color border, Color line)
     {
-        // DOT
-        Data.dotR = dot.r;
-        Data.dotG = dot.g;
-        Data.dotB = dot.b;
-        Data.dotA = dot.a;
+        Data.dotR = dot.r; Data.dotG = dot.g;
+        Data.dotB = dot.b; Data.dotA = dot.a;
         
-        // BORDER
-        Data.borderR = border.r;
-        Data.borderG = border.g;
-        Data.borderB = border.b;
-        Data.borderA = border.a;
+        Data.borderR = border.r; Data.borderG = border.g;
+        Data.borderB = border.b; Data.borderA = border.a;
         
-        // LINE
-        Data.lineR = line.r;
-        Data.lineG = line.g;
-        Data.lineB = line.b;
-        Data.lineA = line.a;
+        Data.lineR = line.r; Data.lineG = line.g;
+        Data.lineB = line.b; Data.lineA = line.a;
     }
     
-    // Получаем все цвета
     public (Color dot, Color border, Color line) GetAllColors()
     {
         return (
@@ -167,6 +150,17 @@ public class SettingsManager : MonoBehaviour
             new Color(Data.lineR, Data.lineG, Data.lineB, Data.lineA)
         );
     }
+
+    // ─── Толщина рамки ───────────────────────────────────────────────────
+
+    public float GetBorderThickness() => Data.borderThickness;
+
+    public void SetBorderThickness(float thickness)
+    {
+        Data.borderThickness = Mathf.Max(1f, thickness);
+    }
+
+    // ─── Камера ──────────────────────────────────────────────────────────
 
     public void SetCameraSelection(int index, string name)
     {
@@ -185,14 +179,6 @@ public class SettingsManager : MonoBehaviour
         return new Vector2Int(Data.cameraWidth, Data.cameraHeight);
     }
 
-    public int GetSelectedCameraIndex()
-    {
-        return Data.selectedCameraIndex;
-    }
-
-    public string GetSelectedCameraName()
-    {
-        return Data.selectedCameraName;
-    }
- 
+    public int GetSelectedCameraIndex() => Data.selectedCameraIndex;
+    public string GetSelectedCameraName() => Data.selectedCameraName;
 }
