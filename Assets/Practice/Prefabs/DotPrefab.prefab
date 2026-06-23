@@ -89,6 +89,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::DragPoint
   _rect: {fileID: 0}
-  _dot: {x: 0, y: 0}
   _canvas: {fileID: 0}
   _pointManager: {fileID: 0}
+  _myQuadrant: 0
+  _isInitialized: 0
+  _mousePos: {x: 0, y: 0}

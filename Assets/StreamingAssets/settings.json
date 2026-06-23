@@ -25,5 +25,7 @@
     "lineG": 0.2093985676765442,
     "lineB": 1.0,
     "lineA": 1.0,
-    "borderThickness": 5.0
+    "borderThickness": 5.0,
+    "calibrationOffsetX": 0.0,
+    "calibrationOffsetY": 0.0
 }
