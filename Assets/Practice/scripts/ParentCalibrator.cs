@@ -4,60 +4,91 @@ using UnityEngine.UI;
 
 [RequireComponent(typeof(RectTransform))]
 public class ParentCalibrator : MonoBehaviour,
-    IDragHandler, IBeginDragHandler, IEndDragHandler, IPointerDownHandler
+    IDragHandler, IBeginDragHandler, IEndDragHandler
 {
     [Header("Ссылки")]
     [SerializeField] private RectTransform _areaRect;
     [SerializeField] private Canvas _canvas;
+    [SerializeField] private UIRectangle _uiRectangle; // бордер двигается вместе
+    [SerializeField] private Button _hideBtn;
+    [SerializeField] private Button _resetBtn;
 
-    [Header("Внешний вид ручки")]
+    [Header("Внешний вид крестика")]
     [SerializeField] private Color _handleColor = new Color(1f, 1f, 0f, 0.85f);
-    [SerializeField] private float _handleSize = 24f;
+    [SerializeField] private float _handleSize = 32f;
 
-    // Собственный RectTransform — это и есть визуальная ручка
-    private RectTransform _handle;
-    private Image _handleImage;
-
-    // Позиция _areaRect до начала текущего перетаскивания
-    private Vector2 _areaStartPos;
-
-    // ─── Unity ───────────────────────────────────────────────────────────
+    private RectTransform _rect;
 
     void Awake()
     {
-        _handle = GetComponent<RectTransform>();
-        SetupHandle();
+        _rect = GetComponent<RectTransform>();
+        _rect.pivot = new Vector2(0.5f, 0.5f);
+        _rect.sizeDelta = Vector2.one * _handleSize;
+
+        SetupRaycastImage();
+        CreateCrossLine("H", new Vector2(_handleSize, 2f));
+        CreateCrossLine("V", new Vector2(2f, _handleSize));
     }
 
     void Start()
     {
-        ApplySavedOffset();   // восстанавливаем сохранённое смещение
-        SnapHandleToCenter(); // ставим крестик в центр _areaRect
+        ApplySavedOffset();
+        CenterOnAreaRect();
+
+        if (_hideBtn != null) _hideBtn.onClick.AddListener(HideHandle);
+        if (_resetBtn != null) _resetBtn.onClick.AddListener(ResetCalibration);
+
+        HideHandle();
+    }
+
+    void OnDestroy()
+    {
+        if (_hideBtn != null) _hideBtn.onClick.RemoveListener(HideHandle);
+        if (_resetBtn != null) _resetBtn.onClick.RemoveListener(ResetCalibration);
+    }
+
+    // ─── Показ / скрытие ─────────────────────────────────────────────────
+
+    public void ShowHandle()
+    {
+        CenterOnAreaRect();
+        gameObject.SetActive(true);
+        SetButtonsVisible(true);
+    }
+
+    public void HideHandle()
+    {
+        // ИСПРАВЛЕНО: сохраняем позицию при закрытии, а не только в OnEndDrag.
+        // Иначе если пользователь нажал кнопку после перетаскивания —
+        // изменения теряются.
+        SaveOffset();
+
+        gameObject.SetActive(false);
+        SetButtonsVisible(false);
+    }
+
+    public void ToggleHandle()
+    {
+        if (gameObject.activeSelf) HideHandle();
+        else ShowHandle();
     }
 
     // ─── Drag ────────────────────────────────────────────────────────────
 
-    public void OnPointerDown(PointerEventData eventData)
-    {
-        // Запоминаем стартовую позицию _areaRect в момент нажатия
-        _areaStartPos = _areaRect.anchoredPosition;
-    }
-
-    public void OnBeginDrag(PointerEventData eventData)
-    {
-        _areaStartPos = _areaRect.anchoredPosition;
-    }
+    public void OnBeginDrag(PointerEventData eventData) { }
 
     public void OnDrag(PointerEventData eventData)
     {
         if (_canvas == null || _areaRect == null) return;
 
-        // Перемещаем _areaRect на дельту мыши (с учётом масштаба Canvas)
-        Vector2 delta = eventData.delta / _canvas.scaleFactor;
-        _areaRect.anchoredPosition += delta;
+        _areaRect.anchoredPosition += eventData.delta / _canvas.scaleFactor;
 
-        // Крестик тоже двигается вместе с _areaRect
-        _handle.anchoredPosition += delta;
+        // Двигаем бордер вместе с _areaRect.
+        // Если UIRectangle является дочерним _areaRect — он двигается
+        // автоматически, и эту строку можно убрать.
+        // Если UIRectangle находится отдельно — перерисовываем его позицию.
+        if (_uiRectangle != null)
+            _uiRectangle.DrawFromSettings();
     }
 
     public void OnEndDrag(PointerEventData eventData)
@@ -67,12 +98,14 @@ public class ParentCalibrator : MonoBehaviour,
 
     // ─── Публичный API ───────────────────────────────────────────────────
 
-    /// <summary>Сбросить смещение к (0,0) и сохранить.</summary>
     public void ResetCalibration()
     {
         if (_areaRect == null) return;
         _areaRect.anchoredPosition = Vector2.zero;
-        SnapHandleToCenter();
+
+        if (_uiRectangle != null)
+            _uiRectangle.DrawFromSettings();
+
         if (SettingsManager.Instance != null)
         {
             SettingsManager.Instance.SetCalibrationOffset(Vector2.zero);
@@ -82,32 +115,24 @@ public class ParentCalibrator : MonoBehaviour,
 
     // ─── Внутреннее ─────────────────────────────────────────────────────
 
-    private void SetupHandle()
+    private void SetButtonsVisible(bool visible)
     {
-        // Настраиваем RectTransform ручки
-        _handle.sizeDelta = Vector2.one * _handleSize;
-        _handle.pivot = new Vector2(0.5f, 0.5f);
+        if (_hideBtn != null) _hideBtn.gameObject.SetActive(visible);
+        if (_resetBtn != null) _resetBtn.gameObject.SetActive(visible);
+    }
 
-        // Создаём Image если нет
-        _handleImage = GetComponent<Image>();
-        if (_handleImage == null)
-            _handleImage = gameObject.AddComponent<Image>();
-
-        _handleImage.color = _handleColor;
-        _handleImage.raycastTarget = true; // нужен для drag-событий
-
-        // Рисуем крестик через дочерние полоски
-        CreateCrossLine("H", new Vector2(_handleSize, 2f));
-        CreateCrossLine("V", new Vector2(2f, _handleSize));
-
-        // Скрываем основную Image (она только для raycast)
-        _handleImage.color = new Color(0, 0, 0, 0);
+    private void SetupRaycastImage()
+    {
+        var img = GetComponent<Image>();
+        if (img == null) img = gameObject.AddComponent<Image>();
+        img.color = new Color(0f, 0f, 0f, 0f);
+        img.raycastTarget = true;
     }
 
     private void CreateCrossLine(string lineName, Vector2 size)
     {
         var go = new GameObject(lineName, typeof(RectTransform), typeof(Image));
-        go.transform.SetParent(_handle, false);
+        go.transform.SetParent(transform, false);
 
         var img = go.GetComponent<Image>();
         img.color = _handleColor;
@@ -121,32 +146,23 @@ public class ParentCalibrator : MonoBehaviour,
         rt.sizeDelta = size;
     }
 
-    /// <summary>Ставит крестик в центр _areaRect.</summary>
-    private void SnapHandleToCenter()
+    private void CenterOnAreaRect()
     {
         if (_areaRect == null) return;
-
-        // Центр _areaRect в его локальном пространстве (pivot = 0,0)
-        Vector2 center = _areaRect.anchoredPosition + _areaRect.rect.size * 0.5f;
-
-        // Если _handle является дочерним того же родителя — позиция напрямую
-        _handle.anchoredPosition = center;
+        _rect.anchoredPosition = _areaRect.rect.size * 0.5f;
     }
 
     private void ApplySavedOffset()
     {
         if (_areaRect == null || SettingsManager.Instance == null) return;
-
-        Vector2 saved = SettingsManager.Instance.GetCalibrationOffset();
-        _areaRect.anchoredPosition = saved;
+        _areaRect.anchoredPosition = SettingsManager.Instance.GetCalibrationOffset();
     }
 
     private void SaveOffset()
     {
         if (_areaRect == null || SettingsManager.Instance == null) return;
-
         SettingsManager.Instance.SetCalibrationOffset(_areaRect.anchoredPosition);
         SettingsManager.Instance.Save();
-        Debug.Log($"[ParentCalibrator] Смещение сохранено: {_areaRect.anchoredPosition}");
+        Debug.Log($"[ParentCalibrator] Сохранено смещение: {_areaRect.anchoredPosition}");
     }
 }
