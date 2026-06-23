@@ -8,15 +8,12 @@ public class UIRectangle : MonoBehaviour
     [SerializeField] private RectTransform _areaRect;
 
     private RectTransform _rect;
-    private RectTransform _top;
-    private RectTransform _bottom;
-    private RectTransform _left;
-    private RectTransform _right;
+    private RectTransform _top, _bottom, _left, _right;
 
     void Awake()
     {
         _rect = GetComponent<RectTransform>();
-        _rect.pivot = new Vector2(0f, 0f); // origin — левый верхний угол рамки
+        _rect.pivot = new Vector2(0f, 1f);
         CreateBorders();
     }
 
@@ -25,32 +22,30 @@ public class UIRectangle : MonoBehaviour
         DrawFromSettings();
     }
 
-    public void DrawFromSettings()
+
+   public void DrawFromSettings()
     {
-        if (SettingsManager.Instance == null || _areaRect == null)
-            return;
-
+        if (SettingsManager.Instance == null || _areaRect == null) return;
+ 
         List<Vector2> saved = SettingsManager.Instance.Data.savedPositions;
-        if (saved == null || saved.Count < 2)
-            return;
-
+        if (saved == null || saved.Count < 2) return;
+ 
         Vector2 areaSize = _areaRect.rect.size;
-
-        // Денормализуем обе точки в пиксельное пространство _areaRect
         Vector2 p1 = CoordinateUtils.ToPixels(saved[0], areaSize);
         Vector2 p2 = CoordinateUtils.ToPixels(saved[1], areaSize);
-
-        // Две точки — диагональные углы прямоугольника.
-        // Находим реальные left/right/bottom/top независимо от порядка точек.
-        float minx   = Mathf.Min(p1.x, p2.x);
-        float maxx  = Mathf.Max(p1.x, p2.x);
-        float miny = Mathf.Min(p1.y, p2.y);
-        float maxy    = Mathf.Max(p1.y, p2.y);
-
-
-        Vector2 position = new Vector2(minx, maxy);
-        Vector2 size     = new Vector2(maxx - minx, maxy - miny);
-
+ 
+        float left   = Mathf.Min(p1.x, p2.x);
+        float right  = Mathf.Max(p1.x, p2.x);
+        float bottom = Mathf.Min(p1.y, p2.y);
+        float top    = Mathf.Max(p1.y, p2.y);
+ 
+        // Позиция бордера в пространстве родителя _areaRect.
+        // Бордер НЕ является дочерним _areaRect, поэтому переводим
+        // локальные координаты _areaRect в координаты общего родителя.
+        Vector2 areaOffset = _areaRect.anchoredPosition;
+        Vector2 position = new Vector2(areaOffset.x + left, areaOffset.y + top);
+        Vector2 size = new Vector2(right - left, top - bottom);
+ 
         DrawRectangle(position, size);
     }
 
@@ -60,6 +55,17 @@ public class UIRectangle : MonoBehaviour
         _rect.sizeDelta = size;
         RefreshBorders();
     }
+
+    // Вызывается из ParentCalibrator при смене цвета в режиме калибровки
+    public void SetColor(Color color)
+    {
+        SetStripColor(_top,    color);
+        SetStripColor(_bottom, color);
+        SetStripColor(_left,   color);
+        SetStripColor(_right,  color);
+    }
+
+    // ─── Внутреннее ─────────────────────────────────────────────────────
 
     private void CreateBorders()
     {
@@ -92,18 +98,17 @@ public class UIRectangle : MonoBehaviour
 
         if (SettingsManager.Instance != null)
         {
-            color = SettingsManager.Instance.GetColor(1);        // index 1 = border
+            color = SettingsManager.Instance.GetColor(1);
             t     = SettingsManager.Instance.GetBorderThickness();
         }
 
         float w = _rect.sizeDelta.x;
         float h = _rect.sizeDelta.y;
 
-        //  pivot (0,1) → y=0 вверху, y отрицательный вниз внутри рамки
-        SetStrip(_top,    new Vector2(0f,     0f),      new Vector2(w, t));
-        SetStrip(_bottom, new Vector2(0f,    -h + t),   new Vector2(w, t));
-        SetStrip(_left,   new Vector2(0f,     0f),      new Vector2(t, h));
-        SetStrip(_right,  new Vector2(w - t,  0f),      new Vector2(t, h));
+        SetStrip(_top,    new Vector2(0f,     0f),    new Vector2(w, t));
+        SetStrip(_bottom, new Vector2(0f,    -h + t), new Vector2(w, t));
+        SetStrip(_left,   new Vector2(0f,     0f),    new Vector2(t, h));
+        SetStrip(_right,  new Vector2(w - t,  0f),    new Vector2(t, h));
 
         SetStripColor(_top,    color);
         SetStripColor(_bottom, color);

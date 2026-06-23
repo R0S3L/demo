@@ -2,75 +2,102 @@ using UnityEngine;
 using UnityEngine.EventSystems;
 using UnityEngine.UI;
 
+/// <summary>
+/// Вешается на тот же GameObject, что и UIRectangle.
+/// В режиме калибровки пользователь тащит бордер — бордер двигается сам
+/// и тянет _areaRect (со всеми дочерними точками) на ту же дельту.
+///
+/// Иерархия:
+///   Canvas
+///     ├─ _areaRect  (pivot 0,0)
+///     │     └─ [точки, крестик и т.д.]
+///     └─ UIRectangle + ParentCalibrator  ← этот GameObject (НЕ дочерний _areaRect)
+///
+/// Кнопка "Калибровка" → ToggleCalibration()
+/// Кнопка "Скрыть"     → назначается автоматически через _hideBtn
+/// Кнопка "Сбросить"   → назначается автоматически через _resetBtn
+/// </summary>
 [RequireComponent(typeof(RectTransform))]
+[RequireComponent(typeof(UIRectangle))]
 public class ParentCalibrator : MonoBehaviour,
     IDragHandler, IBeginDragHandler, IEndDragHandler
 {
     [Header("Ссылки")]
     [SerializeField] private RectTransform _areaRect;
     [SerializeField] private Canvas _canvas;
-    [SerializeField] private UIRectangle _uiRectangle; // бордер двигается вместе
     [SerializeField] private Button _hideBtn;
     [SerializeField] private Button _resetBtn;
 
-    [Header("Внешний вид крестика")]
-    [SerializeField] private Color _handleColor = new Color(1f, 1f, 0f, 0.85f);
-    [SerializeField] private float _handleSize = 32f;
+    [Header("Цвет бордера в режиме калибровки")]
+    [SerializeField] private Color _calibrationColor = new Color(1f, 1f, 0f, 0.85f);
 
     private RectTransform _rect;
+    private UIRectangle _uiRectangle;
+
+    // Сохраняем оригинальный цвет бордера чтобы вернуть его после калибровки
+    private Color _normalColor;
+    private bool _calibrationMode = false;
+
+    // ─── Unity ───────────────────────────────────────────────────────────
 
     void Awake()
     {
         _rect = GetComponent<RectTransform>();
-        _rect.pivot = new Vector2(0.5f, 0.5f);
-        _rect.sizeDelta = Vector2.one * _handleSize;
-
-        SetupRaycastImage();
-        CreateCrossLine("H", new Vector2(_handleSize, 2f));
-        CreateCrossLine("V", new Vector2(2f, _handleSize));
+        _uiRectangle = GetComponent<UIRectangle>();
     }
 
     void Start()
     {
         ApplySavedOffset();
-        CenterOnAreaRect();
 
-        if (_hideBtn != null) _hideBtn.onClick.AddListener(HideHandle);
+        // Перерисовываем бордер после восстановления смещения
+        if (_uiRectangle != null)
+            _uiRectangle.DrawFromSettings();
+
+        if (_hideBtn != null)  _hideBtn.onClick.AddListener(StopCalibration);
         if (_resetBtn != null) _resetBtn.onClick.AddListener(ResetCalibration);
 
-        HideHandle();
+        SetButtonsVisible(false);
+        SetRaycast(false); // бордер не перехватывает клики вне режима калибровки
     }
 
     void OnDestroy()
     {
-        if (_hideBtn != null) _hideBtn.onClick.RemoveListener(HideHandle);
+        if (_hideBtn != null)  _hideBtn.onClick.RemoveListener(StopCalibration);
         if (_resetBtn != null) _resetBtn.onClick.RemoveListener(ResetCalibration);
     }
 
-    // ─── Показ / скрытие ─────────────────────────────────────────────────
+    // ─── Режим калибровки ─────────────────────────────────────────────────
 
-    public void ShowHandle()
+    public void ToggleCalibration()
     {
-        CenterOnAreaRect();
-        gameObject.SetActive(true);
+        if (_calibrationMode) StopCalibration();
+        else StartCalibration();
+    }
+
+    public void StartCalibration()
+    {
+        _calibrationMode = true;
+
+        // Запоминаем нормальный цвет и подсвечиваем бордер
+        if (SettingsManager.Instance != null)
+            _normalColor = SettingsManager.Instance.GetColor(1);
+
+        _uiRectangle?.SetColor(_calibrationColor);
+        SetRaycast(true);
         SetButtonsVisible(true);
     }
 
-    public void HideHandle()
+    public void StopCalibration()
     {
-        // ИСПРАВЛЕНО: сохраняем позицию при закрытии, а не только в OnEndDrag.
-        // Иначе если пользователь нажал кнопку после перетаскивания —
-        // изменения теряются.
-        SaveOffset();
+        _calibrationMode = false;
 
-        gameObject.SetActive(false);
+        // Возвращаем оригинальный цвет бордера
+        _uiRectangle?.SetColor(_normalColor);
+        SetRaycast(false);
         SetButtonsVisible(false);
-    }
 
-    public void ToggleHandle()
-    {
-        if (gameObject.activeSelf) HideHandle();
-        else ShowHandle();
+        SaveOffset();
     }
 
     // ─── Drag ────────────────────────────────────────────────────────────
@@ -79,16 +106,15 @@ public class ParentCalibrator : MonoBehaviour,
 
     public void OnDrag(PointerEventData eventData)
     {
-        if (_canvas == null || _areaRect == null) return;
+        if (!_calibrationMode || _canvas == null || _areaRect == null) return;
 
-        _areaRect.anchoredPosition += eventData.delta / _canvas.scaleFactor;
+        Vector2 delta = eventData.delta / _canvas.scaleFactor;
 
-        // Двигаем бордер вместе с _areaRect.
-        // Если UIRectangle является дочерним _areaRect — он двигается
-        // автоматически, и эту строку можно убрать.
-        // Если UIRectangle находится отдельно — перерисовываем его позицию.
-        if (_uiRectangle != null)
-            _uiRectangle.DrawFromSettings();
+        // Двигаем бордер (этот объект)
+        _rect.anchoredPosition += delta;
+
+        // Двигаем _areaRect на ту же дельту — точки идут вместе
+        _areaRect.anchoredPosition += delta;
     }
 
     public void OnEndDrag(PointerEventData eventData)
@@ -101,10 +127,11 @@ public class ParentCalibrator : MonoBehaviour,
     public void ResetCalibration()
     {
         if (_areaRect == null) return;
-        _areaRect.anchoredPosition = Vector2.zero;
 
-        if (_uiRectangle != null)
-            _uiRectangle.DrawFromSettings();
+        // Считаем на сколько сдвинут _areaRect и откатываем бордер на обратную дельту
+        Vector2 currentOffset = _areaRect.anchoredPosition;
+        _rect.anchoredPosition -= currentOffset;
+        _areaRect.anchoredPosition = Vector2.zero;
 
         if (SettingsManager.Instance != null)
         {
@@ -117,39 +144,16 @@ public class ParentCalibrator : MonoBehaviour,
 
     private void SetButtonsVisible(bool visible)
     {
-        if (_hideBtn != null) _hideBtn.gameObject.SetActive(visible);
+        if (_hideBtn != null)  _hideBtn.gameObject.SetActive(visible);
         if (_resetBtn != null) _resetBtn.gameObject.SetActive(visible);
     }
 
-    private void SetupRaycastImage()
+    // Включаем/выключаем raycastTarget на всех Image внутри бордера,
+    // чтобы вне режима калибровки клики проходили сквозь него.
+    private void SetRaycast(bool value)
     {
-        var img = GetComponent<Image>();
-        if (img == null) img = gameObject.AddComponent<Image>();
-        img.color = new Color(0f, 0f, 0f, 0f);
-        img.raycastTarget = true;
-    }
-
-    private void CreateCrossLine(string lineName, Vector2 size)
-    {
-        var go = new GameObject(lineName, typeof(RectTransform), typeof(Image));
-        go.transform.SetParent(transform, false);
-
-        var img = go.GetComponent<Image>();
-        img.color = _handleColor;
-        img.raycastTarget = false;
-
-        var rt = go.GetComponent<RectTransform>();
-        rt.anchorMin = new Vector2(0.5f, 0.5f);
-        rt.anchorMax = new Vector2(0.5f, 0.5f);
-        rt.pivot = new Vector2(0.5f, 0.5f);
-        rt.anchoredPosition = Vector2.zero;
-        rt.sizeDelta = size;
-    }
-
-    private void CenterOnAreaRect()
-    {
-        if (_areaRect == null) return;
-        _rect.anchoredPosition = _areaRect.rect.size * 0.5f;
+        foreach (var img in GetComponentsInChildren<Image>(true))
+            img.raycastTarget = value;
     }
 
     private void ApplySavedOffset()

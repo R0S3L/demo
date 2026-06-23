@@ -284,7 +284,6 @@ public struct FindDarkPointCentersJob : IJobParallelFor
                 }
             }
         }
-
         if (totalWeight > 0f)
         {
             FoundCenters.Enqueue(new float2(sumX / totalWeight, sumY / totalWeight));
