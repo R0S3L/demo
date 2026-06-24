@@ -25,7 +25,6 @@ public class MousePosControl : MonoBehaviour
     public void SpawnOnMousePos()
     {
         _mousePos = Mouse.current.position.ReadValue(); 
-        Debug.Log($"[{gameObject.name}]SpawnOnMousePos: {_mousePos}");
         _pointManager.Spawn(new Vector2Int(Mathf.RoundToInt(_mousePos.x), Mathf.RoundToInt(_mousePos.y))); 
     }
 

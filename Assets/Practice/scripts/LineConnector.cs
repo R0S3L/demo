@@ -1,16 +1,6 @@
 using UnityEngine;
 using UnityEngine.UI;
 
-/// <summary>
-/// Соединяет дочерние объекты _pointParent линиями по порядку индексов:
-/// [0]→[1]→[2]→...→[n-1] и опционально [n-1]→[0] (замкнуть контур).
-///
-/// Каждая линия — повёрнутый Image-квад.
-/// Цвет берётся из SettingsManager (index 2 = lineColor).
-/// Толщина берётся из SettingsManager (borderThickness) или задаётся отдельно.
-///
-/// Вешается на любой GameObject внутри того же Canvas.
-/// </summary>
 public class LineConnector : MonoBehaviour
 {
     [Header("Ссылки")]
@@ -60,11 +50,6 @@ public class LineConnector : MonoBehaviour
 
     // ─── Внутреннее ─────────────────────────────────────────────────────
 
-    /// <summary>
-    /// Позиционирует линию между двумя точками.
-    /// Линия = квад с pivot (0, 0.5), расположенный в точке A, 
-    /// повёрнутый к B, с шириной = расстояние A→B.
-    /// </summary>
     private void DrawLine(RectTransform line, Vector2 a, Vector2 b)
     {
         Vector2 dir      = b - a;
@@ -75,8 +60,6 @@ public class LineConnector : MonoBehaviour
         line.sizeDelta        = new Vector2(length, _lineThickness);
         line.localRotation    = Quaternion.Euler(0f, 0f, angle);
     }
-
-    /// <summary>Расширяет или сжимает пул линий до нужного размера.</summary>
     private void EnsurePool(int needed)
     {
         if (_linePool.Length == needed) return;
@@ -117,7 +100,6 @@ public class LineConnector : MonoBehaviour
         return img;
     }
 
-    /// <summary>Применяет цвет и толщину из SettingsManager каждый кадр.</summary>
     private void ApplySettings()
     {
         if (SettingsManager.Instance == null) return;
