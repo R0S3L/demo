@@ -1279,12 +1279,6 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 87f79411e3d6c6f4f8ff70ce2d1a7c32, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Uirectangle
-  _areaRect: {fileID: 0}
-  _rect: {fileID: 0}
-  _top: {fileID: 0}
-  _bottom: {fileID: 0}
-  _left: {fileID: 0}
-  _right: {fileID: 0}
 --- !u!1 &619519311
 GameObject:
   m_ObjectHideFlags: 0
@@ -1926,9 +1920,13 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PointCenterTracker
   cameraDisplay: {fileID: 215776455}
-  maxPointBrightness: 102
-  mergeDistance: 5
-  pm: {fileID: 0}
+  maxPointBrightness: 70
+  minSegmentArea: 10
+  maxSegmentArea: 5000
+  cropTop: 0
+  cropBottom: 0
+  cropLeft: 0
+  cropRight: 0
 --- !u!4 &1349093542
 Transform:
   m_ObjectHideFlags: 0

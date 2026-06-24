@@ -20,8 +20,12 @@ public class SceneLoad : MonoBehaviour
     }
 
     // Метод принимает имя сцены
-    public void LoadSceneByName(int sceneName)
+    public void LoadSceneByName(string sceneName)
     {
         SceneManager.LoadScene(sceneName);
+    }
+    public void AppQuit()
+    {
+        Application.Quit();
     }
 }
