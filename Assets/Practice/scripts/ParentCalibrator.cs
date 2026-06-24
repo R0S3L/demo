@@ -4,18 +4,15 @@ using UnityEngine.UI;
 
 /// <summary>
 /// Вешается на тот же GameObject, что и UIRectangle.
-/// В режиме калибровки пользователь тащит бордер — бордер двигается сам
-/// и тянет _areaRect (со всеми дочерними точками) на ту же дельту.
+/// UIRectangle + ParentCalibrator — дочерний объект _areaRect.
+/// При перетаскивании двигается только _areaRect — бордер и точки
+/// следуют за ним автоматически как дочерние объекты.
 ///
 /// Иерархия:
 ///   Canvas
-///     ├─ _areaRect  (pivot 0,0)
-///     │     └─ [точки, крестик и т.д.]
-///     └─ UIRectangle + ParentCalibrator  ← этот GameObject (НЕ дочерний _areaRect)
-///
-/// Кнопка "Калибровка" → ToggleCalibration()
-/// Кнопка "Скрыть"     → назначается автоматически через _hideBtn
-/// Кнопка "Сбросить"   → назначается автоматически через _resetBtn
+///     └─ _areaRect  (pivot 0,0)
+///           ├─ UIRectangle + ParentCalibrator  ← дочерний _areaRect
+///           └─ [точки DragPoint]
 /// </summary>
 [RequireComponent(typeof(RectTransform))]
 [RequireComponent(typeof(UIRectangle))]
@@ -23,7 +20,7 @@ public class ParentCalibrator : MonoBehaviour,
     IDragHandler, IBeginDragHandler, IEndDragHandler
 {
     [Header("Ссылки")]
-    [SerializeField] private RectTransform _areaRect;
+    [SerializeField] private RectTransform _areaRect;   // родитель этого объекта
     [SerializeField] private Canvas _canvas;
     [SerializeField] private Button _hideBtn;
     [SerializeField] private Button _resetBtn;
@@ -31,10 +28,7 @@ public class ParentCalibrator : MonoBehaviour,
     [Header("Цвет бордера в режиме калибровки")]
     [SerializeField] private Color _calibrationColor = new Color(1f, 1f, 0f, 0.85f);
 
-    private RectTransform _rect;
     private UIRectangle _uiRectangle;
-
-    // Сохраняем оригинальный цвет бордера чтобы вернуть его после калибровки
     private Color _normalColor;
     private bool _calibrationMode = false;
 
@@ -42,28 +36,24 @@ public class ParentCalibrator : MonoBehaviour,
 
     void Awake()
     {
-        _rect = GetComponent<RectTransform>();
         _uiRectangle = GetComponent<UIRectangle>();
     }
 
     void Start()
     {
+        // Восстанавливаем сохранённое смещение _areaRect
         ApplySavedOffset();
 
-        // Перерисовываем бордер после восстановления смещения
-        if (_uiRectangle != null)
-            _uiRectangle.DrawFromSettings();
-
-        if (_hideBtn != null)  _hideBtn.onClick.AddListener(StopCalibration);
+        if (_hideBtn != null) _hideBtn.onClick.AddListener(StopCalibration);
         if (_resetBtn != null) _resetBtn.onClick.AddListener(ResetCalibration);
 
         SetButtonsVisible(false);
-        SetRaycast(false); // бордер не перехватывает клики вне режима калибровки
+        SetRaycast(false);
     }
 
     void OnDestroy()
     {
-        if (_hideBtn != null)  _hideBtn.onClick.RemoveListener(StopCalibration);
+        if (_hideBtn != null) _hideBtn.onClick.RemoveListener(StopCalibration);
         if (_resetBtn != null) _resetBtn.onClick.RemoveListener(ResetCalibration);
     }
 
@@ -79,10 +69,10 @@ public class ParentCalibrator : MonoBehaviour,
     {
         _calibrationMode = true;
 
-        // Запоминаем нормальный цвет и подсвечиваем бордер
         if (SettingsManager.Instance != null)
             _normalColor = SettingsManager.Instance.GetColor(1);
 
+        _uiRectangle?.ShowBorder();
         _uiRectangle?.SetColor(_calibrationColor);
         SetRaycast(true);
         SetButtonsVisible(true);
@@ -92,8 +82,8 @@ public class ParentCalibrator : MonoBehaviour,
     {
         _calibrationMode = false;
 
-        // Возвращаем оригинальный цвет бордера
         _uiRectangle?.SetColor(_normalColor);
+        _uiRectangle?.HideBorder();
         SetRaycast(false);
         SetButtonsVisible(false);
 
@@ -108,13 +98,9 @@ public class ParentCalibrator : MonoBehaviour,
     {
         if (!_calibrationMode || _canvas == null || _areaRect == null) return;
 
-        Vector2 delta = eventData.delta / _canvas.scaleFactor;
-
-        // Двигаем бордер (этот объект)
-        _rect.anchoredPosition += delta;
-
-        // Двигаем _areaRect на ту же дельту — точки идут вместе
-        _areaRect.anchoredPosition += delta;
+        // Двигаем только _areaRect.
+        // Бордер и точки — дочерние объекты, двигаются автоматически.
+        _areaRect.anchoredPosition += eventData.delta / _canvas.scaleFactor;
     }
 
     public void OnEndDrag(PointerEventData eventData)
@@ -127,10 +113,6 @@ public class ParentCalibrator : MonoBehaviour,
     public void ResetCalibration()
     {
         if (_areaRect == null) return;
-
-        // Считаем на сколько сдвинут _areaRect и откатываем бордер на обратную дельту
-        Vector2 currentOffset = _areaRect.anchoredPosition;
-        _rect.anchoredPosition -= currentOffset;
         _areaRect.anchoredPosition = Vector2.zero;
 
         if (SettingsManager.Instance != null)
@@ -144,12 +126,10 @@ public class ParentCalibrator : MonoBehaviour,
 
     private void SetButtonsVisible(bool visible)
     {
-        if (_hideBtn != null)  _hideBtn.gameObject.SetActive(visible);
+        if (_hideBtn != null) _hideBtn.gameObject.SetActive(visible);
         if (_resetBtn != null) _resetBtn.gameObject.SetActive(visible);
     }
 
-    // Включаем/выключаем raycastTarget на всех Image внутри бордера,
-    // чтобы вне режима калибровки клики проходили сквозь него.
     private void SetRaycast(bool value)
     {
         foreach (var img in GetComponentsInChildren<Image>(true))

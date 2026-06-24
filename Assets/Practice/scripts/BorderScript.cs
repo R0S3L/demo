@@ -20,33 +20,31 @@ public class UIRectangle : MonoBehaviour
     void Start()
     {
         DrawFromSettings();
+        HideBorder();
     }
 
+    // ─── Публичный API ───────────────────────────────────────────────────
 
-   public void DrawFromSettings()
+    public void ShowBorder() => SetBorderVisible(true);
+    public void HideBorder() => SetBorderVisible(false);
+
+    public void DrawFromSettings()
     {
         if (SettingsManager.Instance == null || _areaRect == null) return;
- 
+
         List<Vector2> saved = SettingsManager.Instance.Data.savedPositions;
         if (saved == null || saved.Count < 2) return;
- 
+
         Vector2 areaSize = _areaRect.rect.size;
         Vector2 p1 = CoordinateUtils.ToPixels(saved[0], areaSize);
         Vector2 p2 = CoordinateUtils.ToPixels(saved[1], areaSize);
- 
-        float left   = Mathf.Min(p1.x, p2.x);
-        float right  = Mathf.Max(p1.x, p2.x);
+
+        float left = Mathf.Min(p1.x, p2.x);
+        float right = Mathf.Max(p1.x, p2.x);
         float bottom = Mathf.Min(p1.y, p2.y);
-        float top    = Mathf.Max(p1.y, p2.y);
- 
-        // Позиция бордера в пространстве родителя _areaRect.
-        // Бордер НЕ является дочерним _areaRect, поэтому переводим
-        // локальные координаты _areaRect в координаты общего родителя.
-        Vector2 areaOffset = _areaRect.anchoredPosition;
-        Vector2 position = new Vector2(areaOffset.x + left, areaOffset.y + top);
-        Vector2 size = new Vector2(right - left, top - bottom);
- 
-        DrawRectangle(position, size);
+        float top = Mathf.Max(p1.y, p2.y);
+
+        DrawRectangle(new Vector2(left, top), new Vector2(right - left, top - bottom));
     }
 
     public void DrawRectangle(Vector2 position, Vector2 size)
@@ -56,30 +54,36 @@ public class UIRectangle : MonoBehaviour
         RefreshBorders();
     }
 
-    // Вызывается из ParentCalibrator при смене цвета в режиме калибровки
     public void SetColor(Color color)
     {
-        SetStripColor(_top,    color);
+        SetStripColor(_top, color);
         SetStripColor(_bottom, color);
-        SetStripColor(_left,   color);
-        SetStripColor(_right,  color);
+        SetStripColor(_left, color);
+        SetStripColor(_right, color);
     }
 
     // ─── Внутреннее ─────────────────────────────────────────────────────
 
+    private void SetBorderVisible(bool visible)
+    {
+        if (_top != null) _top.gameObject.SetActive(visible);
+        if (_bottom != null) _bottom.gameObject.SetActive(visible);
+        if (_left != null) _left.gameObject.SetActive(visible);
+        if (_right != null) _right.gameObject.SetActive(visible);
+    }
+
     private void CreateBorders()
     {
-        _top    = CreateStrip("Border_Top");
+        _top = CreateStrip("Border_Top");
         _bottom = CreateStrip("Border_Bottom");
-        _left   = CreateStrip("Border_Left");
-        _right  = CreateStrip("Border_Right");
+        _left = CreateStrip("Border_Left");
+        _right = CreateStrip("Border_Right");
     }
 
     private RectTransform CreateStrip(string stripName)
     {
         var go = new GameObject(stripName, typeof(RectTransform), typeof(Image));
         go.transform.SetParent(_rect, false);
-
         go.GetComponent<Image>().raycastTarget = false;
 
         var rt = go.GetComponent<RectTransform>();
@@ -99,21 +103,21 @@ public class UIRectangle : MonoBehaviour
         if (SettingsManager.Instance != null)
         {
             color = SettingsManager.Instance.GetColor(1);
-            t     = SettingsManager.Instance.GetBorderThickness();
+            t = SettingsManager.Instance.GetBorderThickness();
         }
 
         float w = _rect.sizeDelta.x;
         float h = _rect.sizeDelta.y;
 
-        SetStrip(_top,    new Vector2(0f,     0f),    new Vector2(w, t));
-        SetStrip(_bottom, new Vector2(0f,    -h + t), new Vector2(w, t));
-        SetStrip(_left,   new Vector2(0f,     0f),    new Vector2(t, h));
-        SetStrip(_right,  new Vector2(w - t,  0f),    new Vector2(t, h));
+        SetStrip(_top, new Vector2(0f, 0f), new Vector2(w, t));
+        SetStrip(_bottom, new Vector2(0f, -h + t), new Vector2(w, t));
+        SetStrip(_left, new Vector2(0f, 0f), new Vector2(t, h));
+        SetStrip(_right, new Vector2(w - t, 0f), new Vector2(t, h));
 
-        SetStripColor(_top,    color);
+        SetStripColor(_top, color);
         SetStripColor(_bottom, color);
-        SetStripColor(_left,   color);
-        SetStripColor(_right,  color);
+        SetStripColor(_left, color);
+        SetStripColor(_right, color);
     }
 
     private static void SetStrip(RectTransform rt, Vector2 pos, Vector2 size)

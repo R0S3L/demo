@@ -9,8 +9,8 @@
             "y": 0.8106808066368103
         }
     ],
-    "selectedCameraIndex": 1,
-    "selectedCameraName": "4K Streaming Webcam",
+    "selectedCameraIndex": 0,
+    "selectedCameraName": "Logi C270 HD WebCam",
     "cameraWidth": 1920,
     "cameraHeight": 1080,
     "dotR": 0.9954291582107544,
@@ -26,6 +26,6 @@
     "lineB": 1.0,
     "lineA": 1.0,
     "borderThickness": 5.0,
-    "calibrationOffsetX": 200.99989318847657,
-    "calibrationOffsetY": -112.50003051757813
+    "calibrationOffsetX": -66.16603088378906,
+    "calibrationOffsetY": -44.82213592529297
 }
