@@ -1406,9 +1406,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 0f8d03089e46d2a40923215aaa8843a1, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::LineConnector
-  _pointParent: {fileID: 260622847}
+  _tracker: {fileID: 1349093541}
+  _cameraDisplay: {fileID: 215776455}
   _lineParent: {fileID: 726228478}
-  _closeLoop: 0
   _lineThickness: 2
 --- !u!1 &818315090
 GameObject:

@@ -1,16 +1,16 @@
 {
     "savedPositions": [
         {
-            "x": 0.32397663593292239,
-            "y": 0.3388773500919342
+            "x": 0.24280713498592378,
+            "y": 0.2420509308576584
         },
         {
-            "x": 0.6730994582176209,
-            "y": 0.8981289267539978
+            "x": 0.7707427144050598,
+            "y": 0.7973576188087463
         }
     ],
-    "selectedCameraIndex": 2,
-    "selectedCameraName": "Intel(R) RealSense(TM) Depth Camera 435i RGB",
+    "selectedCameraIndex": 0,
+    "selectedCameraName": "Logi C270 HD WebCam",
     "cameraWidth": 1920,
     "cameraHeight": 1080,
     "dotR": 0.9954291582107544,
