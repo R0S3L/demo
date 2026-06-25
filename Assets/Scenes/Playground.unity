@@ -1409,7 +1409,7 @@ MonoBehaviour:
   _tracker: {fileID: 1349093541}
   _cameraDisplay: {fileID: 215776455}
   _lineParent: {fileID: 726228478}
-  _lineThickness: 2
+  _lineThickness: 1
 --- !u!1 &818315090
 GameObject:
   m_ObjectHideFlags: 0
@@ -1807,9 +1807,9 @@ RectTransform:
   - {fileID: 215776453}
   - {fileID: 1419707511}
   - {fileID: 1398638093}
+  - {fileID: 726228478}
   - {fileID: 260622847}
   - {fileID: 1584461}
-  - {fileID: 726228478}
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
   m_AnchorMin: {x: 0, y: 0}
@@ -1973,8 +1973,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PointCenterTracker
   cameraDisplay: {fileID: 215776455}
-  maxPointBrightness: 70
-  minSegmentArea: 10
+  maxPointBrightness: 100
+  minSegmentArea: 50
   maxSegmentArea: 5000
   cropTop: 0
   cropBottom: 0

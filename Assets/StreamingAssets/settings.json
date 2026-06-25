@@ -1,31 +1,31 @@
 {
     "savedPositions": [
         {
-            "x": 0.24280713498592378,
-            "y": 0.2420509308576584
+            "x": 0.1796875,
+            "y": 0.2738461494445801
         },
         {
-            "x": 0.7707427144050598,
-            "y": 0.7973576188087463
+            "x": 0.8076171875,
+            "y": 0.8353846073150635
         }
     ],
-    "selectedCameraIndex": 0,
-    "selectedCameraName": "Logi C270 HD WebCam",
+    "selectedCameraIndex": 1,
+    "selectedCameraName": "4K Streaming Webcam",
     "cameraWidth": 1920,
     "cameraHeight": 1080,
-    "dotR": 0.9954291582107544,
-    "dotG": 0.6179601550102234,
-    "dotB": 0.015840470790863038,
+    "dotR": 0.015840470790863038,
+    "dotG": 0.9954291582107544,
+    "dotB": 0.27559295296669009,
     "dotA": 1.0,
     "borderR": 0.9684003591537476,
     "borderG": 0.9870249032974243,
     "borderB": 0.0,
     "borderA": 1.0,
-    "lineR": 0.17272281646728517,
-    "lineG": 1.0,
-    "lineB": 0.0,
+    "lineR": 0.0,
+    "lineG": 0.18538737297058106,
+    "lineB": 1.0,
     "lineA": 1.0,
     "borderThickness": 5.0,
-    "calibrationOffsetX": -46.03508758544922,
-    "calibrationOffsetY": -48.280696868896487
+    "calibrationOffsetX": 0.0,
+    "calibrationOffsetY": 0.0
 }

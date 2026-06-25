@@ -22,14 +22,11 @@ public class LineConnector : MonoBehaviour
     [SerializeField] private RawImage _cameraDisplay;
     [SerializeField] private RectTransform _lineParent;
 
-    [SerializeField] private float _lineThickness = 2f;
+    [SerializeField] private float _lineThickness = 1f;
 
     private List<Image> _linePool = new List<Image>();
     private List<(Vector2 a, Vector2 b)> _segments = new List<(Vector2, Vector2)>();
 
-    // Рабочие списки — переиспользуем без аллокаций каждый кадр
-    private List<float2> _remaining = new List<float2>();
-    private List<int> _remIndices = new List<int>(); // оригинальные индексы для дедупликации
     private HashSet<(int, int)> _drawnPairs = new HashSet<(int, int)>();
 
     void Update()
@@ -43,69 +40,32 @@ public class LineConnector : MonoBehaviour
         DrawSegments();
     }
 
-    // ─── Алгоритм ────────────────────────────────────────────────────────
-
     private void BuildSegments(List<float2> centers)
     {
         _segments.Clear();
         _drawnPairs.Clear();
 
-        // remaining хранит точки с их оригинальными индексами для дедупликации
-        _remaining.Clear();
-        _remIndices.Clear();
-        for (int i = 0; i < centers.Count; i++)
+        if (centers.Count < 3)
+            return;
+
+        var triangles = DelaunayTriangulation.Generate(centers);
+        Debug.Log($"Triangles count = {triangles.Count}");
+
+        foreach (var t in triangles)
         {
-            _remaining.Add(centers[i]);
-            _remIndices.Add(i);
-        }
+            TryAddSegment(
+                centers[t.A], t.A,
+                centers[t.B], t.B);
 
-        while (_remaining.Count > 0)
-        {
-            // Берём первую точку и удаляем её из рабочего списка
-            float2 current = _remaining[0];
-            int currentIdx = _remIndices[0];
-            _remaining.RemoveAt(0);
-            _remIndices.RemoveAt(0);
+            TryAddSegment(
+                centers[t.B], t.B,
+                centers[t.C], t.C);
 
-            if (_remaining.Count == 0) break; // больше не с кем соединять
-
-            // Ищем двух ближайших из remaining
-            FindTwoNearest(current, out int n1, out int n2);
-
-            // Линия 1: current → nearest1
-            TryAddSegment(current, currentIdx, _remaining[n1], _remIndices[n1]);
-
-            // Линия 2: current → nearest2 (если нашлась вторая)
-            if (n2 >= 0)
-                TryAddSegment(current, currentIdx, _remaining[n2], _remIndices[n2]);
+            TryAddSegment(
+                centers[t.C], t.C,
+                centers[t.A], t.A);
         }
     }
-
-    /// <summary>Ищет индексы двух ближайших точек в _remaining к точке current.</summary>
-    private void FindTwoNearest(float2 current, out int idx1, out int idx2)
-    {
-        idx1 = -1; idx2 = -1;
-        float d1 = float.MaxValue, d2 = float.MaxValue;
-
-        for (int i = 0; i < _remaining.Count; i++)
-        {
-            float d = math.distancesq(current, _remaining[i]);
-            if (d < d1)
-            {
-                d2 = d1; idx2 = idx1;
-                d1 = d; idx1 = i;
-            }
-            else if (d < d2)
-            {
-                d2 = d; idx2 = i;
-            }
-        }
-    }
-
-    /// <summary>
-    /// Добавляет сегмент если пара ещё не была нарисована.
-    /// Пара (i, j) и (j, i) считаются одинаковыми.
-    /// </summary>
     private void TryAddSegment(float2 a, int idxA, float2 b, int idxB)
     {
         var key = idxA < idxB ? (idxA, idxB) : (idxB, idxA);
